@@ -8,7 +8,9 @@
     "dev:socket": "node scripts/socket-server.js",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "tunnel:app": "cloudflared tunnel --url http://localhost:3000",
+    "tunnel:socket": "cloudflared tunnel --url http://localhost:3001"
   },
   "dependencies": {
     "@nuxt/eslint": "1.12.1",
