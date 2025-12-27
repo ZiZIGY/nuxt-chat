@@ -2,6 +2,7 @@
   import { onMounted, onUnmounted, ref } from 'vue';
   import { Button } from '@/components/ui/button';
   import { useWebRTCChat } from '@/composables/useWebRTCChat';
+  import { useSocket } from '@/composables/useSocket';
 
   const route = useRoute();
   const roomId = route.params.id as string;
@@ -15,10 +16,15 @@
     cleanup,
   } = useWebRTCChat(roomId);
 
+  const { getServerUrl, setServerUrl } = useSocket();
   const messageInput = ref('');
   const copySuccess = ref(false);
+  const serverUrlInput = ref('');
+  const showServerSettings = ref(false);
 
   onMounted(() => {
+    const savedUrl = getServerUrl();
+    serverUrlInput.value = savedUrl;
     setup();
   });
 
@@ -51,6 +57,17 @@
       }
     }
   }
+
+  function updateServerUrl() {
+    if (serverUrlInput.value.trim()) {
+      setServerUrl(serverUrlInput.value.trim());
+      // Переподключаемся с новым адресом
+      cleanup();
+      setTimeout(() => {
+        setup();
+      }, 500);
+    }
+  }
 </script>
 
 <template>
@@ -67,13 +84,51 @@
         >
           {{ connectionError }}
         </p>
+        <p class="text-xs text-muted-foreground mt-1">
+          Сервер: {{ getServerUrl() }}
+        </p>
       </div>
-      <Button
-        variant="outline"
-        @click="handleLeave"
-      >
-        Покинуть комнату
-      </Button>
+      <div class="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          @click="showServerSettings = !showServerSettings"
+        >
+          {{ showServerSettings ? 'Скрыть' : 'Настройки сервера' }}
+        </Button>
+        <Button
+          variant="outline"
+          @click="handleLeave"
+        >
+          Покинуть комнату
+        </Button>
+      </div>
+    </div>
+
+    <!-- Настройки сервера -->
+    <div
+      v-if="showServerSettings"
+      class="mb-4 p-4 bg-muted rounded-lg"
+    >
+      <h3 class="text-sm font-semibold mb-2">Настройки Socket.io сервера</h3>
+      <p class="text-xs text-muted-foreground mb-2">
+        Укажите адрес сервера Socket.io. Оба пользователя должны использовать один и тот же адрес!
+      </p>
+      <div class="flex gap-2">
+        <input
+          v-model="serverUrlInput"
+          type="text"
+          placeholder="http://localhost:3001"
+          class="flex-1 px-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+          @keyup.enter="updateServerUrl"
+        />
+        <Button
+          size="sm"
+          @click="updateServerUrl"
+        >
+          Применить
+        </Button>
+      </div>
     </div>
 
     <!-- Информация об ожидании подключения -->

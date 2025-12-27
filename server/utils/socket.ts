@@ -1,5 +1,6 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
+import { networkInterfaces } from 'os';
 
 let io: SocketIOServer | null = null;
 let httpServer: ReturnType<typeof createServer> | null = null;
@@ -45,8 +46,23 @@ export function startSocketIOServer() {
   });
 
   const PORT = process.env.SOCKET_PORT || 3001;
-  httpServer.listen(PORT, () => {
-    console.log(`✅ Socket.io server running on port ${PORT}`);
+  const HOST = process.env.SOCKET_HOST || '0.0.0.0';
+  
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`✅ Socket.io server running on ${HOST}:${PORT}`);
+    console.log(`📡 Доступен по адресам:`);
+    console.log(`   - http://localhost:${PORT}`);
+    console.log(`   - http://127.0.0.1:${PORT}`);
+    
+    // Получаем локальные IP-адреса
+    const interfaces = networkInterfaces();
+    Object.keys(interfaces).forEach((interfaceName) => {
+      interfaces[interfaceName]?.forEach((iface) => {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          console.log(`   - http://${iface.address}:${PORT}`);
+        }
+      });
+    });
   });
 
   return io;

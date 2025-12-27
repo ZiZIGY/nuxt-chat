@@ -5,16 +5,44 @@ export function useSocket() {
   const socket: Ref<Socket | null> = ref(null);
   const isConnected = ref(false);
 
-  function connect() {
-    // Подключаемся к Socket.io серверу на порту 3001
-    // В dev режиме используем localhost:3001
+  function getServerUrl(): string {
+    // Проверяем localStorage для сохраненного адреса сервера
+    if (typeof window !== 'undefined') {
+      const savedServerUrl = localStorage.getItem('socketServerUrl');
+      if (savedServerUrl) {
+        return savedServerUrl;
+      }
+    }
+
+    // Проверяем переменную окружения (для SSR)
+    const envServerUrl = process.env.NUXT_PUBLIC_SOCKET_SERVER_URL;
+    if (envServerUrl) {
+      return envServerUrl;
+    }
+
+    // По умолчанию: в dev режиме используем localhost:3001
     // В продакшене используем тот же хост но порт 3001
-    const isDev =
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1';
-    const serverUrl = isDev
-      ? 'http://localhost:3001'
-      : `${window.location.protocol}//${window.location.hostname}:3001`;
+    if (typeof window !== 'undefined') {
+      const isDev =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+      return isDev
+        ? 'http://localhost:3001'
+        : `${window.location.protocol}//${window.location.hostname}:3001`;
+    }
+
+    return 'http://localhost:3001';
+  }
+
+  function connect(customServerUrl?: string) {
+    // Если передан кастомный URL, сохраняем его в localStorage
+    if (customServerUrl && typeof window !== 'undefined') {
+      localStorage.setItem('socketServerUrl', customServerUrl);
+    }
+
+    const serverUrl = customServerUrl || getServerUrl();
+
+    console.log('Подключение к Socket.io серверу:', serverUrl);
 
     socket.value = io(serverUrl, {
       path: '/socket.io/',
@@ -79,6 +107,12 @@ export function useSocket() {
     disconnect();
   });
 
+  function setServerUrl(url: string) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('socketServerUrl', url);
+    }
+  }
+
   return {
     socket,
     isConnected,
@@ -89,5 +123,7 @@ export function useSocket() {
     onUserDisconnected,
     offUserConnected,
     offUserDisconnected,
+    setServerUrl,
+    getServerUrl,
   };
 }
